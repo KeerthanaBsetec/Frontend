@@ -1057,6 +1057,5 @@ const Wallet = () => {
 
 export default Wallet
 
-i wanted to check the changes
 
 
