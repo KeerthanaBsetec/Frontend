@@ -22,13 +22,42 @@ export async function Gen1Mints(signer, address, token, sign){
             return true;
 }
 
-export async function IsApproved(owner,spender,contract,signer){
+export async function IsApproved(owner,spender,contract){
+const honorQuest = await L1Nft(signer);
+const TrainContract = await Train(signer);
+const QuestContract = await Quest(signer);
+if(contract === "Tstake"){
+    const isApproved = await honorQuest.isApprovedForAll(owner,TrainContract)
+    console.log(isApproved)
+    if(isApproved){
+        return true;
+    }
+    if(!isApproved){
+    const approveall = await honorQuest.setApprovalforAll(spender,true);
+    await approveall.wait();
+    return true;
+ }
+}
+else if(contract === "Qstake"){
+    const isApproved = await honorQuest.isApprovedForAll(owner,QuestContract)
+    console.log(isApproved)
+    if(isApproved){
+        return true;
+    }
+    if(!isApproved){
+    const approveall = await honorQuest.setApprovalforAll(spender,true);
+    await approveall.wait();
+    return true;
+ }
+}
+else{
     const isApproved = await contract.isApprovedForAll(owner,spender)
     console.log(isApproved)
     if(!isApproved){
     const approveall = await contract.setApprovalforAll(spender,true);
     await approveall.wait();
- }
+}
+}
 }
 
 export async function vaultStake(token,signer,address) {
@@ -36,7 +65,7 @@ export async function vaultStake(token,signer,address) {
     console.log(honorQuest)
     const vaultContract = await Vault(signer);
     console.log(vaultContract)
-    await IsApproved(address,vaultContract,honorQuest,signer);
+    await IsApproved(address,vaultContract,honorQuest);
     //const sig=signer.address
     const vaultStake = await vaultContract.depositToken(token);
     console.log(vaultStake, "===========vaultStake");

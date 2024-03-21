@@ -1,7 +1,9 @@
 import axios from "axios";
 import { l2api } from "../../config";
+import {IsApproved} from "../../utils/interact"
 
-export function stake(address, tokenIds, characters, type) {
+export async function stake(address, tokenIds, characters, type) {
+    const approve  = await IsApproved(address,stake,type);
     return axios.post(`${l2api.stake}`, { address, tokenIds, characters, type})
         .then((stakeresponse) => {
             return stakeresponse.data;
