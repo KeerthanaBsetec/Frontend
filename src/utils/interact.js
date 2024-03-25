@@ -1,4 +1,5 @@
-import {Gen0,Gen1,L1Nft,L2Nft,Quest,Vault,Honr,Train} from "./contract.js"
+import {Gen0,Gen1,L1Nft,L2Nft,Quest,Vault,Honr,Train,Claim} from "./contract.js"
+import config from "../config.js";
 
 export async function Mints(signer, address, token, sign, mintValueInWei){
    const Gen0Contract = await Gen0(signer);
@@ -22,42 +23,13 @@ export async function Gen1Mints(signer, address, token, sign){
             return true;
 }
 
-export async function IsApproved(owner,spender,contract){
-const honorQuest = await L1Nft(signer);
-const TrainContract = await Train(signer);
-const QuestContract = await Quest(signer);
-if(contract === "Tstake"){
-    const isApproved = await honorQuest.isApprovedForAll(owner,TrainContract)
-    console.log(isApproved)
-    if(isApproved){
-        return true;
-    }
-    if(!isApproved){
-    const approveall = await honorQuest.setApprovalforAll(spender,true);
-    await approveall.wait();
-    return true;
- }
-}
-else if(contract === "Qstake"){
-    const isApproved = await honorQuest.isApprovedForAll(owner,QuestContract)
-    console.log(isApproved)
-    if(isApproved){
-        return true;
-    }
-    if(!isApproved){
-    const approveall = await honorQuest.setApprovalforAll(spender,true);
-    await approveall.wait();
-    return true;
- }
-}
-else{
+export async function IsApproved(owner,spender,contract,signer){
     const isApproved = await contract.isApprovedForAll(owner,spender)
     console.log(isApproved)
     if(!isApproved){
     const approveall = await contract.setApprovalforAll(spender,true);
     await approveall.wait();
-}
-}
+ }
 }
 
 export async function vaultStake(token,signer,address) {
@@ -65,7 +37,7 @@ export async function vaultStake(token,signer,address) {
     console.log(honorQuest)
     const vaultContract = await Vault(signer);
     console.log(vaultContract)
-    await IsApproved(address,vaultContract,honorQuest);
+    await IsApproved(address,vaultContract,honorQuest,signer);
     //const sig=signer.address
     const vaultStake = await vaultContract.depositToken(token);
     console.log(vaultStake, "===========vaultStake");
@@ -87,6 +59,14 @@ export async function VaultUnstake(token,signer,address){
     const vaultStakedtokens = await vaultContract.getVaultTokens(address);
     console.log(vaultStakedtokens.toString());
     return vaultStakedtokens.toString();
+}
+
+export async function deposit(signer,address,amount){
+    console.log(amount,"=========================================amountofdeposit");
+    const HonrContract = await Honr(signer);
+    const deposittoken = await HonrContract.transfer(config.vault,amount.toString())
+    await deposittoken.wait();
+    return true;
 }
 
 export async function vaultstakedTokens(signer,address) {
@@ -188,6 +168,13 @@ return level;
     return bonus;
     
     }
+
+export async function l1withdraw(signer,address,amount,sign){
+    const Claimcontract = await Claim(signer);
+    const claim = await Claimcontract.claim(address,amount,sign.deadline,sign.nonce,sign.v,sign.r,sign.s)
+    await claim.wait();
+    return true;
+}
 
 //  export async function ClaimReward(signer,address,token,character) {
 //  console.log(signer, "===========vaultStake");

@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 import config from "../config.js";
-import { Gen0abi, Gen1abi, Questabi, Nftabi, HonorQuest, vault, Honrabi, Trainabi } from "../lib/abi";
+import { Gen0abi, Gen1abi, Questabi, Nftabi, HonorQuest, vault, Honrabi, Trainabi, Claimabi } from "../lib/abi";
 
 export function Gen0(signer) {
     return new ethers.Contract(config.Gen0, Gen0abi, signer);
@@ -17,6 +17,10 @@ export function Gen1(signer) {
 export function L1Nft(signer) {
      console.log(signer, "=========signer")
     return new ethers.Contract(config.L1NFT, HonorQuest, signer);
+}
+
+export function Claim(signer) {
+    return new ethers.Contract(config.L1Claim, Claimabi, signer)
 }
 
 export function L2Nft(signer) {

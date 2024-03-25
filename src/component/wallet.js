@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button, Form, Modal, Table } from "react-bootstrap";
 import FloatingLabel from 'react-bootstrap/FloatingLabel'
 import { successtoaster, errortoaster } from "../lib/Toast.js";
-import { Mints, Gen1Mints, vaultStake, VaultUnstake, vaultstakedTokens, getQuesttokens, getTraintokens, ClaimedReward, Isunstake, changetimeperiod, totalSupply, CurrentReward, Honrs, getlevel, getbonus } from '../utils/interact.js'
+import { Mints, Gen1Mints, vaultStake, VaultUnstake, vaultstakedTokens, getQuesttokens, getTraintokens, ClaimedReward, Isunstake, changetimeperiod, totalSupply, CurrentReward, Honrs, getlevel, getbonus, l1withdraw, deposit } from '../utils/interact.js'
 import { stake, unstake, getmintedtokens, gettokenUri, signature, claimrewards, unstakabletoken, Trainstake, Trainunstake } from "../Service/L2apis/Stakingapi";
 import { getviewdetails, getalldetails} from "../Service/activityapis"
 import { Navbar, Nav } from 'react-bootstrap';
@@ -52,6 +52,7 @@ const Wallet = () => {
    const navigate = useNavigate();
    const [address, setAddress] = useState("");
    const [clicks, setClicks] = useState(0);
+   const [depositAmount,setdepositAmount]=useState(0);
    const [toast, Settoast] = useState(false);
    const [toastmessage, Settoastmessage] = useState("");
    const [mintedTokens, Setmintedtokens] = useState([]);
@@ -64,7 +65,7 @@ const Wallet = () => {
    const [Vunstaketokens, SetVunstaketokens] = useState([]);
    const [Qunstaketokens,SetQunstaketokens] = useState([]);
    const [questClaimedRewards, setQuestClaimedRewards] = useState({});
-   const [claimedRewards, setclaimedRewards]= useState("");
+   const [claimedRewards, setclaimedRewards]= useState(0);
    const [signer, Setsigner] = useState("");
    const [Provider, Setprovider] = useState("");
    const [isMinting, SetisMinting] = useState(false);
@@ -75,6 +76,7 @@ const Wallet = () => {
    const [isClaiming, SetisClaiming] = useState(false);
    const [isTraining,SetisTraining] = useState(false);
    const [isTrainUnstacking, SetisTrainUnstacking] = useState(false);
+   const [isL1withdraw, SetisL1withdraw] = useState(false);
    const [isStake, SetisStake] = useState(false);
    const [login, setLogin] = useState(false);
    const [showpopup, setShowpopup] = useState(false);
@@ -309,7 +311,9 @@ const Wallet = () => {
    async function userclaim(){
       if (address && address !== null && address !== undefined) {
      const claim= await ClaimedReward(signer,address);
+     console.log(claim,"=============================claiminuserclaim()")
      setclaimedRewards(Math.round(ethers.formatEther(claim)))
+     console.log(claimedRewards,"=============================claimedrewards()")
   }
    }
 
@@ -572,9 +576,6 @@ const Wallet = () => {
 
    }
 
-
-
-   
    async function claim() {
       try{
          SetisClaiming(true);
@@ -596,6 +597,48 @@ const Wallet = () => {
          console.log("error:", error)
          SetisClaiming(false)
          SetQunstaketokens([]);
+      }
+   }
+
+  async function L1Withdraw() {
+      try {
+          setisLoading(true)
+         if (claimedRewards === 0) {
+            errortoaster("No Amount to withdraw")
+            setisLoading(false);
+            return;
+         }
+         else if (address && address !== null && address !== undefined) {
+            const sign = await signature(address, claimedRewards, "L1claim");
+            console.log(claimedRewards,"==================================================L1claim")
+            const withdraw = await l1withdraw(signer, address, claimedRewards, sign);
+             await Tokens(true);
+            successtoaster("Withrawal Completed Successfully")
+         }
+         setisLoading(false);
+      } catch (error) {
+         setisLoading(false);
+         console.log("error:", error)
+      }
+   }
+
+     async function L1Deposit() {
+      try {
+          setisLoading(true)
+         if (depositAmount === 0) {
+            errortoaster("No Amount to Deposit")
+            return;
+         }
+         else if (address && address !== null && address !== undefined) {
+            const reward = await deposit(signer, address, depositAmount*10**18);
+            console.log(reward,"===================================================L1Deposit")
+             await Tokens(true);
+            successtoaster("Deposit Completed Successfully")
+         }
+         setisLoading(false);
+      } catch (error) {
+         setisLoading(false);
+         console.log("error:", error)
       }
    }
 
@@ -686,12 +729,12 @@ const Wallet = () => {
 
                   {address && !isLoading && (
                      <div style={{ paddingTop: "1%" }}>
-                        <Button variant="success" disabled={isMinting || isUnstacking || isStacking || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking} onClick={Mint}>{isMinting ? 'Minting' : 'Mint'}</Button>
+                        <Button variant="success" disabled={isMinting || isUnstacking || isStacking || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking || isL1withdraw} onClick={Mint}>{isMinting ? 'Minting' : 'Mint'}</Button>
                      </div>
                   )}
 
             {address && supply && !isMinting && !isLoading && (
-            <CrossmintPayButton disabled={isMinting || isUnstacking || isStacking || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking}
+            <CrossmintPayButton disabled={isMinting || isUnstacking || isStacking || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking || isL1withdraw}
                 collectionId="d8be5d64-60d9-4a68-8249-adfa3a3bbf2d"
                 projectId="a96d8eb8-083f-406c-991f-610f50ad4745"
                 mintConfig={{"totalPrice":"0.0001","quantity":clicks}}
@@ -705,10 +748,24 @@ const Wallet = () => {
              
       <div className='vault'>
                   <div className='heading' >
+                   {address && !isClaiming && !isUnquesting && !isLoading && (<Nav style={{ marginRight: "1vh", marginLeft: "1vw", border: "2px solid", borderRadius: "5px" }}>
+                     <FloatingLabel controlId="Deposit" label="Deposit" className="mr-2" style={{ width: "10vw",  height: "4vw"}}>
+                        <Form.Control type="number" placeholder="Deposit" 
+                                    onChange={(event) => setdepositAmount(event.target.value)} />
+                     </FloatingLabel>
+                  </Nav>
+                  )}
+            <div>
+                        {address && !isQuesting && !isLoading && (
+                           <div style={{ paddingTop: "1%", marginRight: "8vw"}}>
+                      <Button variant="success" disabled={isMinting || isUnstacking || isStacking || isQuesting  || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking || isL1withdraw} onClick={L1Deposit} > {isLoading ? 'Depositing...' : 'Deposit'}</Button>
+                           </div>
+                        )}
+                     </div>
                      <div>
                         {address && !isQuesting && !isLoading && (
                            <div style={{ paddingTop: "1%" }}>
-                              <Button variant="success" disabled={isMinting || isUnstacking || isStacking  || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking} onClick={handleShowModal}>
+                              <Button variant="success" disabled={isMinting || isUnstacking || isStacking  || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking || isL1withdraw} onClick={handleShowModal}>
                                  {isQuesting ? 'Staking...' : 'Stake'}
                               </Button>
                            </div>
@@ -717,7 +774,7 @@ const Wallet = () => {
                      <div>
                         {address && !isQuesting && !isLoading && (
                            <div style={{ paddingTop: "1%" }}>
-                              <Button variant="success" disabled={isMinting || isUnstacking || isStacking  || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking} onClick={VaultUnstack}>{isUnstacking ? 'Unlocking...' : 'Unlock'}</Button>
+                              <Button variant="success" disabled={isMinting || isUnstacking || isStacking  || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking || isL1withdraw} onClick={VaultUnstack}>{isUnstacking ? 'Unlocking...' : 'Unlock'}</Button>
                            </div>
                         )}
                      </div>
@@ -730,7 +787,7 @@ const Wallet = () => {
      </div>
                )}
                   </div>
-
+            {address && !isQuesting && !isLoading && (
                   <div style={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-around" }}>
                      {vaultStakedTokens.map(({ minted, value }) => (
                         <div key={minted} value={value}>
@@ -752,6 +809,7 @@ const Wallet = () => {
                         </div>
                      ))}
                   </div>
+               )}
 
                     <Modal show={showModal} onHide={handleCloseModal}>
   <Modal.Header closeButton>
@@ -785,7 +843,7 @@ const Wallet = () => {
                   <div>
                      {address && !isStacking && !isLoading && (
                         <div style={{ marginLeft: "50vh" }}>
-                           <Button variant="success" disabled={isMinting || isUnstacking || isStacking  || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking} onClick={Vaultstack}>{isStacking ? 'Locking...' : 'Lock'}</Button>
+                           <Button variant="success" disabled={isMinting || isUnstacking || isStacking  || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking || isL1withdraw} onClick={Vaultstack}>{isStacking ? 'Locking...' : 'Lock'}</Button>
                         </div>
                      )}
                   </div>
@@ -892,23 +950,34 @@ const Wallet = () => {
                   </div>
                </div>
                <div className="stacks">
-                  <div className='stacks_first'>
-                     <div className='Quest'>
-                     {(isUnquesting || isClaiming || !isLoading) && (
-                        <div className='title' style={{display: "flex", flexDirection: "row", alignItems: "left" }}>
-                           <strong>QUEST</strong>
-                           <Button variant="success" disabled={isMinting || isUnstacking || isStacking || isQuesting  || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking} onClick={QuestUnstake} > {isUnquesting ? 'Unstaking...' : 'Unstake'}</Button>
-                        <span>
-                        <Button variant="success" disabled={isMinting || isUnstacking || isStacking || isQuesting  || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking} onClick={claim}> {isClaiming ? 'Claiming...' : 'Claim'}</Button>
-                        </span>
-                        <span style = {{paddingLeft: "1%"}} >
-                         {address && claimedRewards && !isClaiming && !isUnquesting && !isLoading && (<Nav style={{ marginRight: "1vh", marginLeft: "1vw", border: "2px solid", borderRadius: "5px" }}>
+               <div style={{ display: "flex", flexDirection: "row"}} >
+                {address && !isClaiming && !isUnquesting && !isLoading && (<Nav style={{ marginRight: "1vh", marginLeft: "15vw", border: "2px solid", borderRadius: "5px" }}>
                      <FloatingLabel controlId="walletAddress" label="Wallet Rewards" className="mr-2" style={{ width: "10vw",  height: "4vw"}}>
                         <Form.Control type="text" placeholder="Wallet Rewards" readOnly value={claimedRewards || 0} />
                      </FloatingLabel>
                   </Nav>
                   )}
+            {address && !isClaiming && !isUnquesting && !isLoading && (
+             <Button variant="success" disabled={isMinting || isUnstacking || isStacking || isQuesting  || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking || isL1withdraw} onClick={L1Withdraw} > {isLoading ? 'Withdrawing...' : 'Withdraw'}</Button>
+             )}
+               </div>
+                  <div className='stacks_first'>
+                     <div className='Quest'>
+                     {(isUnquesting || isClaiming || !isLoading) && (
+                        <div className='title' style={{display: "flex", flexDirection: "row", alignItems: "left" }}>
+                           <strong>QUEST</strong>
+                           <Button variant="success" disabled={isMinting || isUnstacking || isStacking || isQuesting  || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking || isL1withdraw} onClick={QuestUnstake} > {isUnquesting ? 'Unstaking...' : 'Unstake'}</Button>
+                        <span>
+                        <Button variant="success" disabled={isMinting || isUnstacking || isStacking || isQuesting  || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking || isL1withdraw} onClick={claim}> {isClaiming ? 'Claiming...' : 'Claim'}</Button>
                         </span>
+                    {/*    <span style = {{paddingLeft: "1%"}} >
+                         {address && !isClaiming && !isUnquesting && !isLoading && (<Nav style={{ marginRight: "1vh", marginLeft: "1vw", border: "2px solid", borderRadius: "5px" }}>
+                     <FloatingLabel controlId="walletAddress" label="Wallet Rewards" className="mr-2" style={{ width: "10vw",  height: "4vw"}}>
+                        <Form.Control type="text" placeholder="Wallet Rewards" readOnly value={claimedRewards || 0} />
+                     </FloatingLabel>
+                  </Nav>
+                  )}
+                        </span> */}
                         </div>
                      )}
                         <div className="loader-container">  
@@ -981,10 +1050,18 @@ const Wallet = () => {
                      <div className='Training'>
                         <div className='title'>
                            <strong>TRAINING</strong>
-                            <Button variant="success" disabled={isMinting || isUnstacking || isStacking  || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking} onClick={TrainingUnstake}>
-                               {isUnquesting ? 'Unstaking...' : 'Unstake'}
+                            <Button variant="success" disabled={isMinting || isUnstacking || isStacking  || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking || isL1withdraw} onClick={TrainingUnstake}>
+                               {isTrainUnstacking ? 'Unstaking...' : 'Unstake'}
                               </Button>
                         </div>
+                         <div className="loader-container">           
+               {isTrainUnstacking || isLoading && (
+       <div className="custom-loader-container">
+       <div className="loader-spinner"></div>
+       <p>Loading...</p>
+     </div>
+               )}
+                  </div>
 <div style={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-around"}}>
   {TrainStakedTokens.map(({ minted, value, message }) => (
     <div key={minted} value={value} className="token-container">
