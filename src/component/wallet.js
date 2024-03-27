@@ -77,6 +77,7 @@ const Wallet = () => {
    const [isTraining,SetisTraining] = useState(false);
    const [isTrainUnstacking, SetisTrainUnstacking] = useState(false);
    const [isL1withdraw, SetisL1withdraw] = useState(false);
+   const [isL1Deposit, SetisL1Deposit] = useState(false);
    const [isStake, SetisStake] = useState(false);
    const [login, setLogin] = useState(false);
    const [showpopup, setShowpopup] = useState(false);
@@ -225,6 +226,7 @@ const Wallet = () => {
           await historytable();
           await honrs();
           await totals();
+          await userclaim();
          }
       } catch (error) {
          console.log(error)
@@ -502,7 +504,7 @@ const Wallet = () => {
          errortoaster(`you cant unstake the tokens now` );
          }
          else if (Qunstaketokens.length && address && address !== null && address !== undefined) {
-          const Questunstake = await unstake(address,Qunstaketokens,[1], "QUnStake");
+          const Questunstake = await unstake(address,Qunstaketokens,[1], "QUnstake");
             await Tokens(true);
             const reward = await ClaimedReward(signer,address)
             setclaimedRewards(reward);
@@ -602,42 +604,44 @@ const Wallet = () => {
 
   async function L1Withdraw() {
       try {
-          setisLoading(true)
+          SetisL1withdraw(true)
          if (claimedRewards === 0) {
             errortoaster("No Amount to withdraw")
-            setisLoading(false);
+            SetisL1withdraw(false);
             return;
          }
          else if (address && address !== null && address !== undefined) {
-            const sign = await signature(address, claimedRewards, "L1claim");
-            console.log(claimedRewards,"==================================================L1claim")
-            const withdraw = await l1withdraw(signer, address, claimedRewards, sign);
+            const reward = await ClaimedReward(signer,address)
+            const sign = await signature(address, reward, "L1claim");
+            console.log(reward,"==================================================L1claim")
+            const withdraw = await l1withdraw(signer, address, reward, sign);
              await Tokens(true);
             successtoaster("Withrawal Completed Successfully")
          }
-         setisLoading(false);
+         SetisL1withdraw(false);
       } catch (error) {
-         setisLoading(false);
+         SetisL1withdraw(false);
          console.log("error:", error)
       }
    }
 
      async function L1Deposit() {
       try {
-          setisLoading(true)
+          SetisL1Deposit(true)
          if (depositAmount === 0) {
             errortoaster("No Amount to Deposit")
+            SetisL1Deposit(false);
             return;
          }
          else if (address && address !== null && address !== undefined) {
             const reward = await deposit(signer, address, depositAmount*10**18);
             console.log(reward,"===================================================L1Deposit")
-             await Tokens(true);
+            await Tokens(true);
             successtoaster("Deposit Completed Successfully")
          }
-         setisLoading(false);
+         SetisL1Deposit(false);
       } catch (error) {
-         setisLoading(false);
+         SetisL1Deposit(false);
          console.log("error:", error)
       }
    }
@@ -705,20 +709,20 @@ const Wallet = () => {
             <div className='firstRow'>
                <div className='mint'>
                <div className="loader-container">
-               {isMinting || isLoading && (
+               { isLoading && (
        <div className="custom-loader-container">
        <div className="loader-spinner"></div>
        <p>Loading...</p>
      </div>
                )}
                  </div>
-                  {address && !isLoading && (
+                  {address && (
                      <div style={{ paddingLeft: "3%", paddingTop: "2%" }}>
                         <p>Select how many quantities to mint</p>
                      </div>
                   )}
 
-                  {address && !isLoading && (
+                  {address && (
                      <div style={{ paddingTop: "1%" }}>
                         <Button variant="info" onClick={DecreaseItem}>-</Button>
                         <span style={{ paddingRight: "2%", paddingLeft: "2%" }}> {clicks} </span>
@@ -727,14 +731,14 @@ const Wallet = () => {
                      </div>
                   )}
 
-                  {address && !isLoading && (
+                  {address && (
                      <div style={{ paddingTop: "1%" }}>
-                        <Button variant="success" disabled={isMinting || isUnstacking || isStacking || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking || isL1withdraw} onClick={Mint}>{isMinting ? 'Minting' : 'Mint'}</Button>
+                        <Button variant="success" disabled={isMinting || isUnstacking || isStacking || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking || isL1withdraw || isL1Deposit} onClick={Mint}>{isMinting ? 'Minting' : 'Mint'}</Button>
                      </div>
                   )}
 
-            {address && supply && !isMinting && !isLoading && (
-            <CrossmintPayButton disabled={isMinting || isUnstacking || isStacking || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking || isL1withdraw}
+            {address && supply && !isMinting && (
+            <CrossmintPayButton disabled={isMinting || isUnstacking || isStacking || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking || isL1withdraw || isL1Deposit}
                 collectionId="d8be5d64-60d9-4a68-8249-adfa3a3bbf2d"
                 projectId="a96d8eb8-083f-406c-991f-610f50ad4745"
                 mintConfig={{"totalPrice":"0.0001","quantity":clicks}}
@@ -748,7 +752,7 @@ const Wallet = () => {
              
       <div className='vault'>
                   <div className='heading' >
-                   {address && !isClaiming && !isUnquesting && !isLoading && (<Nav style={{ marginRight: "1vh", marginLeft: "1vw", border: "2px solid", borderRadius: "5px" }}>
+                   {address && !isClaiming && !isUnquesting  && (<Nav style={{ marginRight: "1vh", marginLeft: "1vw", border: "2px solid", borderRadius: "5px" }}>
                      <FloatingLabel controlId="Deposit" label="Deposit" className="mr-2" style={{ width: "10vw",  height: "4vw"}}>
                         <Form.Control type="number" placeholder="Deposit" 
                                     onChange={(event) => setdepositAmount(event.target.value)} />
@@ -756,38 +760,38 @@ const Wallet = () => {
                   </Nav>
                   )}
             <div>
-                        {address && !isQuesting && !isLoading && (
+                        {address && !isQuesting  && (
                            <div style={{ paddingTop: "1%", marginRight: "8vw"}}>
-                      <Button variant="success" disabled={isMinting || isUnstacking || isStacking || isQuesting  || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking || isL1withdraw} onClick={L1Deposit} > {isLoading ? 'Depositing...' : 'Deposit'}</Button>
+                      <Button variant="success" disabled={isMinting || isUnstacking || isStacking || isQuesting  || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking || isL1withdraw || isL1Deposit} onClick={L1Deposit} > {isLoading ? 'Depositing...' : 'Deposit'}</Button>
                            </div>
                         )}
                      </div>
                      <div>
-                        {address && !isQuesting && !isLoading && (
+                        {address && !isQuesting  && (
                            <div style={{ paddingTop: "1%" }}>
-                              <Button variant="success" disabled={isMinting || isUnstacking || isStacking  || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking || isL1withdraw} onClick={handleShowModal}>
+                              <Button variant="success" disabled={isMinting || isUnstacking || isStacking  || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking || isL1withdraw || isL1Deposit} onClick={handleShowModal}>
                                  {isQuesting ? 'Staking...' : 'Stake'}
                               </Button>
                            </div>
                         )}
                      </div>
                      <div>
-                        {address && !isQuesting && !isLoading && (
+                        {address && !isQuesting && (
                            <div style={{ paddingTop: "1%" }}>
-                              <Button variant="success" disabled={isMinting || isUnstacking || isStacking  || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking || isL1withdraw} onClick={VaultUnstack}>{isUnstacking ? 'Unlocking...' : 'Unlock'}</Button>
+                              <Button variant="success" disabled={isMinting || isUnstacking || isStacking  || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking || isL1withdraw || isL1Deposit} onClick={VaultUnstack}>{isUnstacking ? 'Unlocking...' : 'Unlock'}</Button>
                            </div>
                         )}
                      </div>
                   </div>
                    <div className="loader-container">           
-               {isQuesting || isLoading && (
+               {isLoading && (
        <div className="custom-loader-container">
        <div className="loader-spinner"></div>
        <p>Loading...</p>
      </div>
                )}
                   </div>
-            {address && !isQuesting && !isLoading && (
+            {address && !isQuesting && (
                   <div style={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-around" }}>
                      {vaultStakedTokens.map(({ minted, value }) => (
                         <div key={minted} value={value}>
@@ -841,9 +845,9 @@ const Wallet = () => {
             <div className="lastRow" >
                <div className="lock" >
                   <div>
-                     {address && !isStacking && !isLoading && (
+                     {address && !isStacking && (
                         <div style={{ marginLeft: "50vh" }}>
-                           <Button variant="success" disabled={isMinting || isUnstacking || isStacking  || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking || isL1withdraw} onClick={Vaultstack}>{isStacking ? 'Locking...' : 'Lock'}</Button>
+                           <Button variant="success" disabled={isMinting || isUnstacking || isStacking  || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking || isL1withdraw || isL1Deposit} onClick={Vaultstack}>{isStacking ? 'Locking...' : 'Lock'}</Button>
                         </div>
                      )}
                   </div>
@@ -869,7 +873,7 @@ const Wallet = () => {
                      ))}
                   </div>
                   <div className="loader-container">         
-                  {(isStacking || isLoading) && (
+                  {isLoading && (
        <div className="custom-loader-container">
        <div className="loader-spinner"></div>
        <p>Loading...</p>
@@ -877,7 +881,7 @@ const Wallet = () => {
                )}
                </div>
                   <div style={{overflow: 'auto'}}>
-                   {Alldetails && Alldetails.length > 0 && !isStacking &&!isLoading ? (
+                   {Alldetails && Alldetails.length > 0 && !isStacking  ? (
     <Table striped bordered hover style={{ width: '100%', tableLayout: 'fixed', wordWrap: 'break-word', marginTop: '20px' }}>
       <thead>
         <tr>
@@ -951,27 +955,27 @@ const Wallet = () => {
                </div>
                <div className="stacks">
                <div style={{ display: "flex", flexDirection: "row"}} >
-                {address && !isClaiming && !isUnquesting && !isLoading && (<Nav style={{ marginRight: "1vh", marginLeft: "15vw", border: "2px solid", borderRadius: "5px" }}>
+                {address && !isClaiming && !isUnquesting && (<Nav style={{ marginRight: "1vh", marginLeft: "15vw", border: "2px solid", borderRadius: "5px" }}>
                      <FloatingLabel controlId="walletAddress" label="Wallet Rewards" className="mr-2" style={{ width: "10vw",  height: "4vw"}}>
                         <Form.Control type="text" placeholder="Wallet Rewards" readOnly value={claimedRewards || 0} />
                      </FloatingLabel>
                   </Nav>
                   )}
-            {address && !isClaiming && !isUnquesting && !isLoading && (
-             <Button variant="success" disabled={isMinting || isUnstacking || isStacking || isQuesting  || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking || isL1withdraw} onClick={L1Withdraw} > {isLoading ? 'Withdrawing...' : 'Withdraw'}</Button>
+            {address && !isClaiming && !isUnquesting  && (
+             <Button variant="success" disabled={isMinting || isUnstacking || isStacking || isQuesting  || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking || isL1withdraw || isL1Deposit} onClick={L1Withdraw} > {isLoading ? 'Withdrawing...' : 'Withdraw'}</Button>
              )}
                </div>
                   <div className='stacks_first'>
                      <div className='Quest'>
-                     {(isUnquesting || isClaiming || !isLoading) && (
+                     {(isUnquesting || isClaiming ) && (
                         <div className='title' style={{display: "flex", flexDirection: "row", alignItems: "left" }}>
                            <strong>QUEST</strong>
-                           <Button variant="success" disabled={isMinting || isUnstacking || isStacking || isQuesting  || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking || isL1withdraw} onClick={QuestUnstake} > {isUnquesting ? 'Unstaking...' : 'Unstake'}</Button>
+                           <Button variant="success" disabled={isMinting || isUnstacking || isStacking || isQuesting  || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking || isL1withdraw || isL1Deposit} onClick={QuestUnstake} > {isUnquesting ? 'Unstaking...' : 'Unstake'}</Button>
                         <span>
-                        <Button variant="success" disabled={isMinting || isUnstacking || isStacking || isQuesting  || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking || isL1withdraw} onClick={claim}> {isClaiming ? 'Claiming...' : 'Claim'}</Button>
+                        <Button variant="success" disabled={isMinting || isUnstacking || isStacking || isQuesting  || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking || isL1withdraw || isL1Deposit} onClick={claim}> {isClaiming ? 'Claiming...' : 'Claim'}</Button>
                         </span>
                     {/*    <span style = {{paddingLeft: "1%"}} >
-                         {address && !isClaiming && !isUnquesting && !isLoading && (<Nav style={{ marginRight: "1vh", marginLeft: "1vw", border: "2px solid", borderRadius: "5px" }}>
+                         {address && !isClaiming && !isUnquesting && (<Nav style={{ marginRight: "1vh", marginLeft: "1vw", border: "2px solid", borderRadius: "5px" }}>
                      <FloatingLabel controlId="walletAddress" label="Wallet Rewards" className="mr-2" style={{ width: "10vw",  height: "4vw"}}>
                         <Form.Control type="text" placeholder="Wallet Rewards" readOnly value={claimedRewards || 0} />
                      </FloatingLabel>
@@ -981,7 +985,7 @@ const Wallet = () => {
                         </div>
                      )}
                         <div className="loader-container">  
-                        {(isUnquesting || isClaiming || isLoading) && (
+                        { isLoading && (
        <div className="custom-loader-container">
        <div className="loader-spinner"></div>
        <p>Loading...</p>
@@ -999,7 +1003,7 @@ const Wallet = () => {
                                  </div>
                               </div>
                            ))}
-          {(isUnquesting || isClaiming || !isLoading )&& (
+
          <div style={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "space-around"}}>
                      {QuestStakedTokens.map(({ minted, value }) => (
                         <div key={minted} value={value}>
@@ -1024,7 +1028,7 @@ const Wallet = () => {
                         </div>
                      ))}
                   </div>
-          )}
+
                         </div>
                      </div>
                      <div className='Liyer'>
@@ -1050,12 +1054,12 @@ const Wallet = () => {
                      <div className='Training'>
                         <div className='title'>
                            <strong>TRAINING</strong>
-                            <Button variant="success" disabled={isMinting || isUnstacking || isStacking  || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking || isL1withdraw} onClick={TrainingUnstake}>
+                            <Button variant="success" disabled={isMinting || isUnstacking || isStacking  || isQuesting || isUnquesting || isClaiming || isTraining || isTrainUnstacking || isL1withdraw || isL1Deposit} onClick={TrainingUnstake}>
                                {isTrainUnstacking ? 'Unstaking...' : 'Unstake'}
                               </Button>
                         </div>
                          <div className="loader-container">           
-               {isTrainUnstacking || isLoading && (
+               {isLoading && (
        <div className="custom-loader-container">
        <div className="loader-spinner"></div>
        <p>Loading...</p>
@@ -1089,7 +1093,6 @@ const Wallet = () => {
     </div>
   ))}
 </div>
-
                         <div className='row'>
                            {array.map((data) => (
                               <div className='col-4'>
